@@ -33,8 +33,6 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.36/pdfmake.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.36/vfs_fonts.js"></script>
-
-<!-- ✅ PapaParse for strong CSV parsing -->
 <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 
 <script>
@@ -43,20 +41,25 @@ const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS971GTcHdugkiPf
 $(document).ready(function () {
   Papa.parse(csvUrl, {
     download: true,
-    header: true,
+    header: false, // manual handling
+    skipEmptyLines: true,
     complete: function(results) {
-      const data = results.data;
-      const headers = results.meta.fields;
+      const data = results.data.filter(row => row.length > 0);
+      const headers = data.shift(); // first row = header
 
-      // Generate table header
+      // Pad each row to match header length
+      const normalizedData = data.map(row => {
+        while (row.length < headers.length) row.push("");
+        return row;
+      });
+
+      // Create table header HTML
       const thead = '<tr>' + headers.map(h => `<th>${h}</th>`).join('') + '</tr>';
       $('#furnitureTable thead').html(thead);
 
-      // Convert data to array of arrays
-      const rows = data.map(row => headers.map(h => row[h] || ''));
-
+      // Init DataTable
       $('#furnitureTable').DataTable({
-        data: rows,
+        data: normalizedData,
         columns: headers.map(h => ({ title: h })),
         responsive: true,
         dom: 'Bfrtip',
